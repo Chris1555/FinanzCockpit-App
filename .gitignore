@@ -1,0 +1,54 @@
+# Gradle, Kotlin and generated build output
+.gradle/
+.kotlin/
+**/build/
+
+# Local Android configuration
+local.properties
+
+# IDE metadata
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Android build artifacts and captures
+*.apk
+*.aab
+*.apks
+*.idsig
+captures/
+
+# Signing material and private keys
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.key
+*.pem
+keystore.properties
+signing.properties
+SIGNATUR-ZUGANGSDATEN.json
+
+# Local environment files; keep shareable templates visible
+.env
+.env.*
+*.env
+!.env.example
+!.env.template
+
+# FinanzCockpit backups
+*.fcbak
+
+# Signing/key archives (avoid a broad *.zip rule)
+*[Ss][Ii][Gg][Nn][Ii][Nn][Gg]*.[Zz][Ii][Pp]
+*[Ss][Ii][Gg][Nn][Aa][Tt][Uu][Rr]*.[Zz][Ii][Pp]
+*[Kk][Ee][Yy][Ss][Tt][Oo][Rr][Ee]*.[Zz][Ii][Pp]
+*[Pp][Rr][Ii][Vv][Aa][Tt][Ee][-_][Kk][Ee][Yy]*.[Zz][Ii][Pp]
+*[Rr][Ee][Ll][Ee][Aa][Ss][Ee][-_][Kk][Ee][Yy]*.[Zz][Ii][Pp]

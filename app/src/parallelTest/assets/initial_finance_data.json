@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 4,
+  "plans": [
+    {"id":"html-seed-1","name":"Gehalt BzK","type":"Einnahme","category":"Gehalt","costType":"Fix","frequency":"Monatlich","amount":2900,"status":"Aktiv","note":"Aktuelle Excel-Datei"},
+    {"id":"html-seed-2","name":"Gehalt (LH)","type":"Einnahme","category":"Nebeneinkommen","costType":"Fix","frequency":"Monatlich","amount":176,"status":"Aktiv","note":"Aktuelle Excel-Datei"},
+    {"id":"html-seed-3","name":"Mieteinnahme","type":"Einnahme","category":"Mieteinnahmen","costType":"Fix","frequency":"Monatlich","amount":470.82,"status":"Aktiv","note":"In Excel als Miete bezeichnet"},
+    {"id":"html-seed-4","name":"Kfz Auto","type":"Ausgabe","category":"Mobilität","costType":"Fix","frequency":"Jährlich","amount":726.94,"status":"Aktiv","note":"Excel enthält zusätzlich 26,85 € monatlich; ausdrücklichen Jahreswert 726,94 € übernommen"},
+    {"id":"html-seed-5","name":"Unfallversicherung","type":"Ausgabe","category":"Versicherung","costType":"Fix","frequency":"Monatlich","amount":12.99,"status":"Aktiv","note":""},
+    {"id":"html-seed-6","name":"Krankentagegeld","type":"Ausgabe","category":"Versicherung","costType":"Fix","frequency":"Monatlich","amount":3.17,"status":"Aktiv","note":""},
+    {"id":"html-seed-7","name":"Waipu + Netflix","type":"Ausgabe","category":"Abonnements","costType":"Optional","frequency":"Monatlich","amount":33.49,"status":"Aktiv","note":"Kündigung prüfen"},
+    {"id":"html-seed-8","name":"Grundsteuer","type":"Ausgabe","category":"Wohnen","costType":"Fix","frequency":"Jährlich","amount":4.40,"status":"Aktiv","note":"Jahreswert aus Excel übernommen"},
+    {"id":"html-seed-9","name":"Google Speicher","type":"Ausgabe","category":"Abonnements","costType":"Optional","frequency":"Monatlich","amount":2.99,"status":"Aktiv","note":""},
+    {"id":"html-seed-10","name":"ChatGPT","type":"Ausgabe","category":"Abonnements","costType":"Optional","frequency":"Monatlich","amount":21.99,"status":"Aktiv","note":""},
+    {"id":"html-seed-11","name":"Calle kocht Kanal","type":"Ausgabe","category":"Abonnements","costType":"Optional","frequency":"Monatlich","amount":3.99,"status":"Aktiv","note":"Rhythmus in Excel leer – monatlich angenommen"},
+    {"id":"html-seed-12","name":"Handyvertrag","type":"Ausgabe","category":"Kommunikation","costType":"Fix","frequency":"Monatlich","amount":26.33,"status":"Aktiv","note":""},
+    {"id":"html-seed-13","name":"Berufsunfähigkeit","type":"Ausgabe","category":"Versicherung","costType":"Fix","frequency":"Monatlich","amount":107.20,"status":"Aktiv","note":""},
+    {"id":"html-seed-14","name":"Aktiendepot","type":"Sparen","category":"Sparen & Investieren","costType":"Sparen","frequency":"Monatlich","amount":500,"status":"Aktiv","note":""},
+    {"id":"html-seed-15","name":"Stadtwerke","type":"Ausgabe","category":"Wohnen","costType":"Fix","frequency":"Monatlich","amount":58,"status":"Aktiv","note":""},
+    {"id":"html-seed-16","name":"Internet","type":"Ausgabe","category":"Kommunikation","costType":"Fix","frequency":"Monatlich","amount":39.99,"status":"Aktiv","note":"Laufzeitangabe prüfen"},
+    {"id":"html-seed-17","name":"Miete","type":"Ausgabe","category":"Wohnen","costType":"Fix","frequency":"Monatlich","amount":825,"status":"Aktiv","note":""},
+    {"id":"html-seed-18","name":"Rundfunkbeitrag","type":"Ausgabe","category":"Wohnen","costType":"Fix","frequency":"Jährlich","amount":223.76,"status":"Aktiv","note":""},
+    {"id":"html-seed-19","name":"Amazon Prime","type":"Ausgabe","category":"Abonnements","costType":"Optional","frequency":"Jährlich","amount":89,"status":"Aktiv","note":"März"},
+    {"id":"html-seed-20","name":"Amazon Music","type":"Ausgabe","category":"Abonnements","costType":"Optional","frequency":"Jährlich","amount":99,"status":"Aktiv","note":"Januar"},
+    {"id":"html-seed-21","name":"Kfz-Steuer Auto","type":"Ausgabe","category":"Mobilität","costType":"Fix","frequency":"Jährlich","amount":282,"status":"Aktiv","note":"November"},
+    {"id":"html-seed-22","name":"Privathaftpflicht","type":"Ausgabe","category":"Versicherung","costType":"Fix","frequency":"Jährlich","amount":48.92,"status":"Aktiv","note":""},
+    {"id":"html-seed-23","name":"Rücklagen","type":"Sparen","category":"Sparen & Investieren","costType":"Sparen","frequency":"Monatlich","amount":500,"status":"Aktiv","note":""},
+    {"id":"html-seed-24","name":"Bausparer","type":"Sparen","category":"Sparen & Investieren","costType":"Sparen","frequency":"Monatlich","amount":250,"status":"Aktiv","note":""}
+  ],
+  "bookings": [],
+  "settings": {
+    "currency": "EUR",
+    "categories": ["Abonnements","Gehalt","Kommunikation","Mieteinnahmen","Mobilität","Nebeneinkommen","Sparen & Investieren","Versicherung","Wohnen"]
+  }
+}
