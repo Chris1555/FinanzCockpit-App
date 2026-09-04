@@ -52,11 +52,11 @@ enum class LockDelay(val label: String, val milliseconds: Long) {
 
 enum class UnlockMode(val label: String, val authenticators: Int) {
     BIOMETRIC_OR_PIN(
-        "Biometrie oder Geräte-PIN",
+        "Biometrie oder Gerätesperre",
         BiometricManager.Authenticators.BIOMETRIC_STRONG or
             BiometricManager.Authenticators.DEVICE_CREDENTIAL,
     ),
-    BIOMETRIC_ONLY("Nur Biometrie", BiometricManager.Authenticators.BIOMETRIC_STRONG),
+    BIOMETRIC_ONLY("Biometrie bevorzugt", BiometricManager.Authenticators.BIOMETRIC_STRONG),
     DEVICE_PIN("Nur Geräte-PIN", BiometricManager.Authenticators.DEVICE_CREDENTIAL),
 }
 

@@ -71,7 +71,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
     private var pendingExportBytes: ByteArray? = null
     private var pendingRestoreSnapshot: FinanceSnapshot? = null
 
-    fun unlock(passphrase: ByteArray) {
+    fun unlock(passphrase: ByteArray, onComplete: (Boolean) -> Unit = {}) {
         val requestGeneration = ++generation
         _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
@@ -99,6 +99,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                 }
                 if (generation != requestGeneration) {
                     withContext(Dispatchers.IO) { newRepository.close() }
+                    onComplete(false)
                     return@launch
                 }
                 repository = newRepository
@@ -113,6 +114,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                             !preferences.getBoolean(ONBOARDING_COMPLETE, false),
                     )
                 }
+                onComplete(true)
                 observation?.cancel()
                 observation = viewModelScope.launch {
                     newRepository.snapshot
@@ -135,6 +137,7 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
                             error = "Die verschlüsselte Datenbank konnte nicht geöffnet werden.",
                         )
                     }
+                    onComplete(false)
                 }
             } finally {
                 passphrase.fill(0)
@@ -165,6 +168,12 @@ class FinanceViewModel(application: Application) : AndroidViewModel(application)
         if (oldRepository != null) {
             viewModelScope.launch(Dispatchers.IO) { oldRepository.close() }
         }
+    }
+
+    fun cancelPendingUnlock() {
+        if (_state.value.isUnlocked || !_state.value.isLoading) return
+        generation += 1
+        _state.update { it.copy(isLoading = false) }
     }
 
     fun savePlan(plan: FinancePlan) = perform("Position gespeichert") { savePlan(plan) }

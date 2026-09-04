@@ -11,98 +11,140 @@ class BiometricUnlocker(
     private val activity: FragmentActivity,
     private val secureKeyStore: SecureKeyStore,
 ) {
+    private val requestGate = AuthenticationRequestGate()
     private var prompt: BiometricPrompt? = null
-    private var pendingEnrollment: SecureKeyStore.Enrollment? = null
+    private var activeCleanup: (() -> Unit)? = null
+
+    fun availabilityError(authenticators: Int): String? = BiometricPolicy.availabilityError(
+        authenticators,
+        BiometricManager.from(activity).canAuthenticate(authenticators),
+    )
 
     fun authenticate(
         authenticators: Int = AUTHENTICATORS,
+        title: String = "FinanzCockpit entsperren",
         onUnlocked: (ByteArray) -> Unit,
         onError: (String) -> Unit,
         onCancelled: () -> Unit,
     ) {
-        val biometricManager = BiometricManager.from(activity)
-        if (biometricManager.canAuthenticate(authenticators) != BiometricManager.BIOMETRIC_SUCCESS) {
-            onError("Bitte richte auf dem Gerät eine sichere PIN und optional Biometrie ein.")
+        invalidateActiveRequest()
+        val requestId = requestGate.begin()
+        var pendingEnrollment: SecureKeyStore.Enrollment? = null
+
+        fun clearPending() {
+            pendingEnrollment?.databasePassphrase?.fill(0)
+            pendingEnrollment = null
+        }
+
+        activeCleanup = ::clearPending
+
+        fun finishWithError(message: String) {
+            clearPending()
+            if (!requestGate.claimTerminal(requestId)) return
+            prompt = null
+            activeCleanup = null
+            onError(message)
+        }
+
+        availabilityError(authenticators)?.let {
+            finishWithError(it)
+            return
+        }
+
+        val existingEnrollment = try {
+            secureKeyStore.isEnrolled()
+        } catch (_: Exception) {
+            finishWithError(BiometricPolicy.keyMaterialError())
+            return
+        }
+        val cipher: Cipher = try {
+            if (existingEnrollment) {
+                secureKeyStore.prepareUnlock()
+            } else {
+                secureKeyStore.prepareEnrollment().also { pendingEnrollment = it }.cipher
+            }
+        } catch (_: Exception) {
+            finishWithError(
+                if (existingEnrollment) BiometricPolicy.keyMaterialError()
+                else "Die sichere Geräteauthentifizierung konnte nicht vorbereitet werden.",
+            )
             return
         }
 
         try {
-            val cipher: Cipher
-            if (secureKeyStore.isEnrolled()) {
-                cipher = secureKeyStore.prepareUnlock()
-            } else {
-                pendingEnrollment = secureKeyStore.prepareEnrollment()
-                cipher = checkNotNull(pendingEnrollment).cipher
-            }
-
-            prompt = BiometricPrompt(
+            val currentPrompt = BiometricPrompt(
                 activity,
                 ContextCompat.getMainExecutor(activity),
                 object : BiometricPrompt.AuthenticationCallback() {
                     override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                        if (!requestGate.claimTerminal(requestId)) {
+                            clearPending()
+                            return
+                        }
+                        prompt = null
+                        activeCleanup = null
                         val authorizedCipher = result.cryptoObject?.cipher
                         if (authorizedCipher == null) {
                             clearPending()
-                            onError("Die sichere Entsperrung lieferte keinen Kryptoschlüssel.")
+                            onError("Die Geräteauthentifizierung konnte nicht sicher abgeschlossen werden.")
                             return
                         }
-                        try {
-                            val passphrase = pendingEnrollment?.let {
+                        val passphrase = try {
+                            pendingEnrollment?.let {
                                 secureKeyStore.finishEnrollment(authorizedCipher, it.databasePassphrase)
                             } ?: secureKeyStore.finishUnlock(authorizedCipher)
-                            pendingEnrollment = null
-                            onUnlocked(passphrase)
                         } catch (_: Exception) {
                             clearPending()
-                            onError("Der Geräteschlüssel konnte nicht verwendet werden. Nutze eine Sicherung zur Wiederherstellung.")
+                            onError(
+                                if (existingEnrollment) BiometricPolicy.keyMaterialError()
+                                else "Die sichere Geräteauthentifizierung konnte nicht abgeschlossen werden.",
+                            )
+                            return
                         }
+                        pendingEnrollment = null
+                        onUnlocked(passphrase)
                     }
 
                     override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
                         clearPending()
-                        if (
-                            errorCode == BiometricPrompt.ERROR_CANCELED ||
-                            errorCode == BiometricPrompt.ERROR_USER_CANCELED ||
-                            errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON
-                        ) {
-                            onCancelled()
-                        } else {
-                            onError(errString.toString())
-                        }
+                        if (!requestGate.claimTerminal(requestId)) return
+                        prompt = null
+                        activeCleanup = null
+                        BiometricPolicy.authenticationError(errorCode)?.let(onError) ?: onCancelled()
                     }
                 },
             )
 
-            val info = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("FinanzCockpit entsperren")
-                .setSubtitle(
-                    if (authenticators == BiometricManager.Authenticators.BIOMETRIC_STRONG) {
-                        "Biometrie verwenden"
-                    } else if (authenticators == BiometricManager.Authenticators.DEVICE_CREDENTIAL) {
-                        "Geräte-PIN verwenden"
-                    } else {
-                        "Biometrie oder Geräte-PIN verwenden"
-                    },
-                )
+            val copy = BiometricPolicy.promptCopy(authenticators)
+            val infoBuilder = BiometricPrompt.PromptInfo.Builder()
+                .setTitle(title)
+                .setSubtitle(copy.subtitle)
                 .setAllowedAuthenticators(authenticators)
                 .setConfirmationRequired(true)
-                .build()
-            prompt?.authenticate(info, BiometricPrompt.CryptoObject(cipher))
+            copy.negativeButton?.let(infoBuilder::setNegativeButtonText)
+            val info = infoBuilder.build()
+            if (!requestGate.isCurrent(requestId)) {
+                clearPending()
+                return
+            }
+            prompt = currentPrompt
+            currentPrompt.authenticate(info, BiometricPrompt.CryptoObject(cipher))
         } catch (_: Exception) {
-            clearPending()
-            onError("Die sichere Geräteauthentifizierung konnte nicht gestartet werden.")
+            finishWithError("Die sichere Geräteauthentifizierung konnte nicht gestartet werden.")
         }
     }
 
     fun cancel() {
-        prompt?.cancelAuthentication()
-        prompt = null
-        clearPending()
+        invalidateActiveRequest()
     }
 
-    private fun clearPending() {
-        pendingEnrollment?.databasePassphrase?.fill(0)
-        pendingEnrollment = null
+    private fun invalidateActiveRequest() {
+        requestGate.invalidate()
+        activeCleanup?.invoke()
+        activeCleanup = null
+        val previousPrompt = prompt
+        prompt = null
+        previousPrompt?.cancelAuthentication()
     }
 
     companion object {

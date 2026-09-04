@@ -55,6 +55,8 @@ fun DataScreen(
     lastBackupDate: String?,
     settings: AppSettings,
     viewModel: FinanceViewModel,
+    requestBiometricPreferredActivation: () -> Unit,
+    biometricPreferredAvailabilityError: () -> String?,
     requestBackup: () -> Unit,
     requestLegacyImport: () -> Unit,
     requestRestore: () -> Unit,
@@ -64,6 +66,7 @@ fun DataScreen(
     var dataOptionsVisible by remember { mutableStateOf(false) }
     var categoriesVisible by remember { mutableStateOf(false) }
     var confirmReset by remember { mutableStateOf(false) }
+    var confirmBiometricPreferred by remember { mutableStateOf(false) }
     val haptic = rememberAppHaptic()
 
     fun update(transform: (AppSettings) -> AppSettings) = viewModel.updateSettings(transform)
@@ -214,7 +217,15 @@ fun DataScreen(
                             settings.unlockMode,
                             UnlockMode.entries,
                             UnlockMode::label,
-                            { update { current -> current.copy(unlockMode = it) } },
+                            { selected ->
+                                if (selected == settings.unlockMode) return@SelectorField
+                                if (selected == UnlockMode.BIOMETRIC_ONLY) {
+                                    biometricPreferredAvailabilityError()?.let(viewModel::showError)
+                                        ?: run { confirmBiometricPreferred = true }
+                                } else {
+                                    update { current -> current.copy(unlockMode = selected) }
+                                }
+                            },
                         )
                         TextButton(onClick = { securityDetailsVisible = !securityDetailsVisible }) {
                             Text(if (securityDetailsVisible) "Sicherheitsdetails ausblenden" else "Sicherheitsdetails anzeigen")
@@ -332,6 +343,31 @@ fun DataScreen(
                 }) { Text("Endgültig löschen") }
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Abbrechen") } },
+        )
+    }
+    if (confirmBiometricPreferred) {
+        AlertDialog(
+            onDismissRequest = { confirmBiometricPreferred = false },
+            title = { Text("„Biometrie bevorzugt“ aktivieren?") },
+            text = {
+                Text(
+                    "Beim normalen Entsperren wird ausschließlich starke Biometrie angeboten. " +
+                        "Für Notfälle bleibt auf dem Sperrbildschirm ein separat bestätigter Zugang " +
+                        "über Geräte-PIN, Muster oder Passwort verfügbar. Die Einstellung wird erst " +
+                        "nach erfolgreicher biometrischer Bestätigung gespeichert.",
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        confirmBiometricPreferred = false
+                        requestBiometricPreferredActivation()
+                    },
+                ) { Text("Biometrie bestätigen") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmBiometricPreferred = false }) { Text("Abbrechen") }
+            },
         )
     }
 }

@@ -42,6 +42,7 @@ import de.finanzcockpit.app.FinanceUiState
 import de.finanzcockpit.app.FinanceViewModel
 import de.finanzcockpit.app.PendingImportKind
 import de.finanzcockpit.app.R
+import de.finanzcockpit.app.UnlockMode
 import de.finanzcockpit.app.backup.FinanceJsonCodec
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -53,6 +54,9 @@ import java.time.LocalDate
 fun FinanzCockpitRoot(
     viewModel: FinanceViewModel,
     requestUnlock: () -> Unit,
+    requestBiometricPreferredActivation: () -> Unit,
+    biometricPreferredAvailabilityError: () -> String?,
+    requestRecoveryUnlock: () -> Unit,
     lockNow: () -> Unit,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -116,6 +120,8 @@ fun FinanzCockpitRoot(
                     state = state,
                     viewModel = viewModel,
                     lockNow = lockNow,
+                    requestBiometricPreferredActivation = requestBiometricPreferredActivation,
+                    biometricPreferredAvailabilityError = biometricPreferredAvailabilityError,
                     requestBackup = { showExportPassword = true },
                     requestLegacyImport = { legacyImportLauncher.launch(arrayOf("application/json", "text/json")) },
                     requestRestore = { restoreLauncher.launch(arrayOf("application/octet-stream", "*/*")) },
@@ -125,7 +131,9 @@ fun FinanzCockpitRoot(
             LockedScreen(
                 loading = state.isLoading,
                 error = state.error,
+                unlockMode = state.settings.unlockMode,
                 onUnlock = requestUnlock,
+                onRecoveryUnlock = requestRecoveryUnlock,
             )
         }
 
@@ -257,8 +265,15 @@ fun FinanzCockpitRoot(
 }
 
 @Composable
-private fun LockedScreen(loading: Boolean, error: String?, onUnlock: () -> Unit) {
+private fun LockedScreen(
+    loading: Boolean,
+    error: String?,
+    unlockMode: UnlockMode,
+    onUnlock: () -> Unit,
+    onRecoveryUnlock: () -> Unit,
+) {
     var logoVisible by remember { mutableStateOf(false) }
+    var confirmRecovery by remember { mutableStateOf(false) }
     val logoScale by animateFloatAsState(
         targetValue = if (logoVisible) 1f else 0.94f,
         animationSpec = tween(320),
@@ -287,10 +302,49 @@ private fun LockedScreen(loading: Boolean, error: String?, onUnlock: () -> Unit)
             Text("FinanzCockpit", style = MaterialTheme.typography.headlineMedium)
             Text("Deine Finanzdaten sind gesperrt.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             if (error != null) Text(error, color = MaterialTheme.colorScheme.error)
-            if (loading) CircularProgressIndicator() else Button(onClick = onUnlock) {
-                Text("Mit Biometrie oder Geräte-PIN entsperren")
+            if (loading) {
+                CircularProgressIndicator()
+            } else {
+                Button(onClick = onUnlock) {
+                    Text(
+                        when (unlockMode) {
+                            UnlockMode.BIOMETRIC_ONLY -> "Mit Biometrie entsperren"
+                            UnlockMode.BIOMETRIC_OR_PIN -> "Mit Biometrie oder Gerätesperre entsperren"
+                            UnlockMode.DEVICE_PIN -> "Mit Gerätesperre entsperren"
+                        },
+                    )
+                }
+                if (unlockMode == UnlockMode.BIOMETRIC_ONLY) {
+                    OutlinedButton(onClick = { confirmRecovery = true }) {
+                        Text("Notfallzugang mit Gerätesperre")
+                    }
+                }
             }
         }
+    }
+    if (confirmRecovery) {
+        AlertDialog(
+            onDismissRequest = { confirmRecovery = false },
+            title = { Text("Notfallzugang verwenden?") },
+            text = {
+                Text(
+                    "Du verwendest dafür die Geräte-PIN, das Muster oder das Passwort. " +
+                        "Nach erfolgreicher Entsperrung wird der Modus auf „Biometrie oder " +
+                        "Gerätesperre“ zurückgestellt.",
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        confirmRecovery = false
+                        onRecoveryUnlock()
+                    },
+                ) { Text("Mit Gerätesperre fortfahren") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmRecovery = false }) { Text("Abbrechen") }
+            },
+        )
     }
 }
 
